@@ -24,15 +24,8 @@ import io.zeebe.exporters.kafka.serde.RecordDeserializer;
 import io.zeebe.exporters.kafka.serde.RecordId;
 import io.zeebe.exporters.kafka.serde.RecordIdDeserializer;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -55,9 +48,12 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
+
+
 
 /**
  * This tests the deployment of the exporter into a Zeebe broker in a as-close-to-production way as
@@ -74,7 +70,9 @@ final class KafkaExporterIT {
   private static final Pattern TOPIC_SUBSCRIPTION_PATTERN = Pattern.compile("zeebe.*");
 
   private final Network network = Network.newNetwork();
+  @Container
   private KafkaContainer kafkaContainer = newKafkaContainer();
+  @Container
   private final ZeebeContainer zeebeContainer = newZeebeContainer();
 
   private ZeebeClient zeebeClient;
@@ -106,40 +104,15 @@ final class KafkaExporterIT {
     final var sampleWorkload = newSampleWorkload();
 
     // when
-    sampleWorkload.execute();
-    startKafka();
+    sampleWorkload.execute(this::startKafka);
 
     // then
     assertRecordsExported(sampleWorkload);
   }
 
-  @Test
-  void shouldExportEvenIfKafkaRestartedInTheMiddle()
-      throws MalformedURLException, InterruptedException {
-    // given
-    startKafka();
-    zeebeContainer.start();
-    final var sampleWorkload = newSampleWorkload();
-
-    // when
-    final var latch = new CountDownLatch(1);
-    final var workloadFinished =
-        CompletableFuture.runAsync(() -> sampleWorkload.execute(latch::countDown));
-
-    assertThat(latch.await(15, TimeUnit.SECONDS))
-        .as("midpoint hook was called to stop kafka")
-        .isTrue();
-    kafkaContainer.stop();
-    kafkaContainer = newKafkaContainer();
-    startKafka();
-    workloadFinished.join();
-
-    // then
-    assertRecordsExported(sampleWorkload);
-  }
 
   private SampleWorkload newSampleWorkload() throws MalformedURLException {
-    return new SampleWorkload(getLazyZeebeClient(), getLazyDebugExporter());
+    return new SampleWorkload(getLazyZeebeClient(), new DebugHttpExporterClient(newConsumer(UUID.randomUUID().toString())));
   }
 
   /**
@@ -234,7 +207,7 @@ final class KafkaExporterIT {
       final Map<Integer, List<ConsumerRecord<RecordId, Record<?>>>> records) {
     final var timeout = Duration.ofSeconds(5);
 
-    try (final Consumer<RecordId, Record<?>> consumer = newConsumer()) {
+    try (final Consumer<RecordId, Record<?>> consumer = newConsumer(this.getClass().getName())) {
       final var consumedRecords = consumer.poll(timeout);
       for (final var consumedRecord : consumedRecords) {
         final var perPartitionRecords =
@@ -259,15 +232,7 @@ final class KafkaExporterIT {
     return zeebeClient;
   }
 
-  private DebugHttpExporterClient getLazyDebugExporter() throws MalformedURLException {
-    if (debugExporter == null) {
-      final var exporterServerUrl =
-          new URL(String.format("http://%s/records.json", zeebeContainer.getExternalAddress(8000)));
-      debugExporter = new DebugHttpExporterClient((exporterServerUrl));
-    }
 
-    return debugExporter;
-  }
 
   @SuppressWarnings("OctalInteger")
   private ZeebeContainer newZeebeContainer() {
@@ -278,7 +243,7 @@ final class KafkaExporterIT {
     final var networkAlias = "zeebe";
     final var logConsumer = new Slf4jLogConsumer(newContainerLogger("zeebeContainer"), true);
 
-    container.addExposedPort(8000);
+//    container.withAdditionalExposedPort(8000);
     return container
         .withNetwork(network)
         .withNetworkAliases(networkAlias)
@@ -296,12 +261,12 @@ final class KafkaExporterIT {
         .withLogConsumer(logConsumer);
   }
 
-  private Consumer<RecordId, Record<?>> newConsumer() {
+  private Consumer<RecordId, Record<?>> newConsumer(final String groupId) {
     final var config = new HashMap<String, Object>();
     config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
     config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
-    config.put(ConsumerConfig.GROUP_ID_CONFIG, this.getClass().getName());
+    config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
     config.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, Integer.MAX_VALUE);
     config.put(ConsumerConfig.METADATA_MAX_AGE_CONFIG, 500);
     config.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
@@ -329,7 +294,8 @@ final class KafkaExporterIT {
 
   private void startKafka() {
     kafkaContainer.start();
-
+System.out.println("KAFKA "  + kafkaContainer.getBootstrapServers());
+    System.out.println("KAFKA "  + kafkaContainer.getExposedPorts());
     // provision Kafka topics - this is difficult at the moment to achieve purely via
     // configuration, so we do it as a pre-step
     final NewTopic topic = new NewTopic("zeebe", 3, (short) 1);

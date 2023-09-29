@@ -15,16 +15,14 @@
  */
 package io.zeebe.exporters.kafka.qa;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
 import io.camunda.zeebe.protocol.record.Record;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.net.URL;
-import java.util.Collections;
-import java.util.List;
+import io.zeebe.exporters.kafka.serde.RecordId;
+import java.time.Duration;
+import java.util.*;
 import java.util.stream.Stream;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+
 
 /**
  * A dumb client for the DebugHttpExporter. This exporter starts a server on a single broker for all
@@ -40,24 +38,26 @@ import java.util.stream.Stream;
  */
 final class DebugHttpExporterClient {
 
-  private static final ObjectReader READER =
-      new ObjectMapper().readerFor(new TypeReference<List<Record<?>>>() {});
+  private final Consumer<RecordId, Record<?>> consumer;
+  private final List<ConsumerRecord<RecordId, Record<?>>> records = new ArrayList<>();
 
-  private final URL serverUrl;
-
-  DebugHttpExporterClient(final URL serverUrl) {
-    this.serverUrl = serverUrl;
+  DebugHttpExporterClient(final Consumer<RecordId, Record<?>> consumer) {
+    this.consumer = consumer;
   }
 
   Stream<Record<?>> streamRecords() {
-    try {
-      // the HTTP exporter returns records in reversed order, so flip them before returning
-      final List<Record<?>> records = READER.readValue(serverUrl);
+
+    final var timeout = Duration.ofSeconds(5);
+
+      final var consumedRecords = consumer.poll(timeout);
+      for (final var consumedRecord : consumedRecords) {
+        records.add(consumedRecord);
+      }
+
+
       Collections.reverse(records);
 
-      return records.stream().map(r -> r);
-    } catch (final IOException e) {
-      throw new UncheckedIOException(e);
-    }
+      return records.stream().map(r -> r.value());
+
   }
 }

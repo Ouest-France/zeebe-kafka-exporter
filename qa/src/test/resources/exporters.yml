@@ -1,10 +1,6 @@
 zeebe:
   broker:
     exporters:
-      debug:
-        className: io.camunda.zeebe.broker.exporter.debug.DebugHttpExporter
-        args:
-          port: 8000
       kafka:
         className: io.zeebe.exporters.kafka.KafkaExporter
         jarPath: /usr/local/zeebe/exporters/zeebe-kafka-exporter.jar

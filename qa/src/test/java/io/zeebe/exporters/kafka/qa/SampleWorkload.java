@@ -87,8 +87,8 @@ public final class SampleWorkload {
     final AtomicBoolean fail = new AtomicBoolean(true);
     final JobWorker worker = createJobWorker((jobClient, job) -> handleJob(fail, jobClient, job));
 
-    midpointHook.run();
     publishMessage();
+    midpointHook.run();
 
     final Record<IncidentRecordValue> incident = awaitIncidentRaised(workflowInstanceKey);
     client.newUpdateRetriesCommand(incident.getValue().getJobKey()).retries(3).send().join();
@@ -103,6 +103,7 @@ public final class SampleWorkload {
   public List<Record<?>> getExpectedRecords(final Duration timeout) {
     final var records = new ArrayList<Record<?>>();
     assertThat(endMarkerKey).as("the end marker was published so it can be looked up").isPositive();
+
 
     Awaitility.await("until all expected records have been exported")
         .atMost(timeout)
