@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
   <name>Zeebe Kafka Exporter Root</name>
   <artifactId>zeebe-kafka-exporter-root</artifactId>
-  <groupId>io.zeebe</groupId>
+  <groupId>fr.ouestfrance.sic</groupId>
   <packaging>pom</packaging>
   <version>4.0.0-SNAPSHOT</version>
   <inceptionYear>2019</inceptionYear>
@@ -16,13 +16,6 @@
     <module>serde</module>
   </modules>
 
-  <parent>
-    <groupId>org.camunda</groupId>
-    <artifactId>camunda-release-parent</artifactId>
-    <version>3.9.1</version>
-    <!-- do not remove empty tag - http://jira.codehaus.org/browse/MNG-4687 -->
-    <relativePath />
-  </parent>
 
   <properties>
     <!-- release parent settings -->
@@ -95,13 +88,13 @@
     <dependencies>
       <!-- Sibling modules -->
       <dependency>
-        <groupId>io.zeebe</groupId>
+        <groupId>fr.ouestfrance.sic</groupId>
         <artifactId>zeebe-kafka-exporter</artifactId>
         <version>${project.version}</version>
       </dependency>
 
       <dependency>
-        <groupId>io.zeebe</groupId>
+        <groupId>fr.ouestfrance.sic</groupId>
         <artifactId>zeebe-kafka-exporter-serde</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -243,6 +236,10 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>${plugin.version.compiler}</version>
+          <configuration>
+            <source>${version.java}</source>
+            <target>${version.java}</target>
+          </configuration>
         </plugin>
 
         <!-- JAVADOC -->
@@ -578,37 +575,15 @@
     </profile>
   </profiles>
 
-  <repositories>
-    <repository>
-      <id>zeebe</id>
-      <name>Zeebe Repository</name>
-      <url>https://artifacts.camunda.com/artifactory/zeebe-io/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-
-    <repository>
-      <id>zeebe-snapshots</id>
-      <name>Zeebe Snapshot Repository</name>
-      <url>https://artifacts.camunda.com/artifactory/zeebe-io-snapshots/</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
 
   <scm>
-    <url>https://github.com/camunda-community-hub/zeebe-kafka-exporter</url>
-    <connection>scm:git:git@github.com:camunda-community-hub/zeebe-kafka-exporter.git</connection>
-    <developerConnection>scm:git:git@github.com:camunda-community-hub/zeebe-kafka-exporter.git
+    <connection>
+      scm:git:https://github.com/Ouest-France/zeebe-kafka-exporter.git
+    </connection>
+    <developerConnection>
+      scm:git:https://github.com/Ouest-France/zeebe-kafka-exporter.git
     </developerConnection>
     <tag>HEAD</tag>
   </scm>
+
 </project>

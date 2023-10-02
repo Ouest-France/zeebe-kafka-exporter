@@ -10,7 +10,7 @@
 
   <parent>
     <artifactId>zeebe-kafka-exporter-root</artifactId>
-    <groupId>io.zeebe</groupId>
+    <groupId>fr.ouestfrance.sic</groupId>
     <version>4.0.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
@@ -18,13 +18,13 @@
   <dependencies>
     <!-- enforce a dependency on the exporter to ensure we always install/package it first -->
     <dependency>
-      <groupId>io.zeebe</groupId>
+      <groupId>fr.ouestfrance.sic</groupId>
       <artifactId>zeebe-kafka-exporter</artifactId>
       <scope>test</scope>
     </dependency>
 
     <dependency>
-      <groupId>io.zeebe</groupId>
+      <groupId>fr.ouestfrance.sic</groupId>
       <artifactId>zeebe-kafka-exporter-serde</artifactId>
       <scope>test</scope>
     </dependency>
@@ -137,7 +137,7 @@
             <configuration>
               <artifactItems>
                 <artifactItem>
-                  <groupId>io.zeebe</groupId>
+                  <groupId>fr.ouestfrance.sic</groupId>
                   <artifactId>zeebe-kafka-exporter</artifactId>
                   <version>${project.version}</version>
                   <type>jar</type>
@@ -157,7 +157,7 @@
               ignore as we want to enforce a fake dependency to ensure we always package the
               exporter first
               -->
-            <unusedDeclaredDependency>io.zeebe:zeebe-kafka-exporter</unusedDeclaredDependency>
+            <unusedDeclaredDependency>fr.ouestfrance.sic:zeebe-kafka-exporter</unusedDeclaredDependency>
             <!-- false positive, used as logging output in tests -->
             <unusedDeclaredDependency>org.slf4j:slf4j-simple</unusedDeclaredDependency>
           </ignoredUnusedDeclaredDependencies>
